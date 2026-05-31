@@ -1,0 +1,193 @@
+
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Image Classifier Cat vs Dog</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    .card {
+      background: white;
+      border-radius: 20px;
+      padding: 40px;
+      max-width: 500px;
+      width: 100%;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.2);
+      text-align: center;
+    }
+    h1 { font-size: 28px; color: #1a1a2e; margin-bottom: 8px; }
+    .subtitle { color: #666; margin-bottom: 30px; font-size: 14px; }
+
+    .upload-area {
+      border: 2px dashed #667eea;
+      border-radius: 12px;
+      padding: 30px;
+      margin-bottom: 20px;
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+    .upload-area:hover { background: #f0f0ff; }
+    .upload-icon { font-size: 48px; margin-bottom: 10px; }
+    .upload-text { color: #667eea; font-weight: 600; }
+
+    input[type="file"] { display: none; }
+
+    #preview {
+      width: 100%;
+    height:400px;
+      object-fit: cover;
+      border-radius: 12px;
+      margin-bottom: 20px;
+      display: none;
+    }
+    .btn {
+      background: linear-gradient(135deg, #667eea, #764ba2);
+      color: white;
+      border: none;
+      padding: 14px 40px;
+      border-radius: 50px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      width: 100%;
+      transition: transform 0.2s;
+    }
+    .btn:hover { transform: translateY(-2px); }
+    .btn:disabled { opacity: 0.6; cursor: not-allowed; }
+
+    #result-box {
+      margin-top: 24px;
+      padding: 20px;
+      border-radius: 12px;
+      display: none;
+    }
+    .result-cat { background: #fff0f3; border: 2px solid #ff6b9d; }
+    .result-dog { background: #f0f7ff; border: 2px solid #667eea; }
+    .result-emoji { font-size: 52px; margin-bottom: 8px; }
+    .result-label { font-size: 28px; font-weight: 700; color: #1a1a2e; }
+    .result-conf { font-size: 16px; color: #666; margin-top: 4px; }
+    .conf-bar-wrap {
+      background: #eee;
+      border-radius: 20px;
+      height: 10px;
+      margin-top: 12px;
+      overflow: hidden;
+    }
+    .conf-bar {
+      height: 100%;
+      border-radius: 20px;
+      background: linear-gradient(90deg, #667eea, #764ba2);
+      transition: width 1s ease;
+    }
+    .loader {
+      display: none;
+      color: #667eea;
+      font-size: 14px;
+      margin-top: 12px;
+    }
+    .internship-badge {
+      background: #f8f9ff;
+      border: 1px solid #e0e4ff;
+      border-radius: 8px;
+      padding: 8px 14px;
+      font-size: 12px;
+      color: #667eea;
+      margin-bottom: 20px;
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>Image Classifier Cat vs Dog</h1>
+    <p class="subtitle">Deep Learning Model — 95.62% Accuracy</p>
+   
+
+    <div class="upload-area" onclick="document.getElementById('fileInput').click()">
+      <div class="upload-icon">📸</div>
+      <p class="upload-text">Click to upload image</p>
+      <p style="color:#999; font-size:13px; margin-top:4px">
+        JPG, PNG supported
+      </p>
+    </div>
+
+    <input type="file" id="fileInput"
+           accept="image/*" onchange="previewImage()">
+
+    <img id="preview" src="" alt="Preview">
+
+    <button class="btn" id="predictBtn"
+            onclick="predict()" disabled>
+      🔍 Predict!
+    </button>
+
+    <p class="loader" id="loader">⏳ Model is thinking...</p>
+
+    <div id="result-box">
+      <div class="result-emoji" id="result-emoji"></div>
+      <div class="result-label" id="result-label"></div>
+      <div class="result-conf" id="result-conf"></div>
+      <div class="conf-bar-wrap">
+        <div class="conf-bar" id="conf-bar" style="width:0%"></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    function previewImage() {
+      const file = document.getElementById('fileInput').files[0];
+      if (!file) return;
+      const preview = document.getElementById('preview');
+      preview.src = URL.createObjectURL(file);
+      preview.style.display = 'block';
+      document.getElementById('predictBtn').disabled = false;
+      document.getElementById('result-box').style.display = 'none';
+    }
+
+    async function predict() {
+      const file = document.getElementById('fileInput').files[0];
+      if (!file) { alert('Pehle image select karo!'); return; }
+
+      document.getElementById('predictBtn').disabled = true;
+      document.getElementById('loader').style.display = 'block';
+      document.getElementById('result-box').style.display = 'none';
+
+      const formData = new FormData();
+      formData.append('file', file);
+
+      const res  = await fetch('/predict', { method: 'POST', body: formData });
+      const data = await res.json();
+
+      document.getElementById('loader').style.display = 'none';
+      document.getElementById('predictBtn').disabled = false;
+
+      const box = document.getElementById('result-box');
+      box.className = 'result-box ' +
+        (data.label.includes('Dog') ? 'result-dog' : 'result-cat');
+      box.style.display = 'block';
+
+      document.getElementById('result-emoji').textContent =
+        data.label.includes('Dog') ? '🐶' : '🐱';
+      document.getElementById('result-label').textContent = data.label;
+      document.getElementById('result-conf').textContent =
+        'Confidence: ' + data.confidence + '%';
+
+      setTimeout(() => {
+        document.getElementById('conf-bar').style.width = data.confidence + '%';
+      }, 100);
+    }
+  </script>
+</body>
+</html>
+
